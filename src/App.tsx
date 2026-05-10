@@ -95,15 +95,26 @@ export default function App() {
   const [startMonth, setStartMonth] = useState<string>('')
   const [endMonth, setEndMonth] = useState<string>('')
 
-  // カード切替時に期間をリセット
+  // カード切替時に期間を保持（新カードの範囲にクランプ）
   const handleCardChange = (cardId: string) => {
     setSelectedCardKey(cardId)
-    setStartMonth('')
-    setEndMonth('')
   }
 
-  const effectiveStart = startMonth || allMonths[0] || ''
-  const effectiveEnd = endMonth || allMonths[allMonths.length - 1] || ''
+  const effectiveStart = useMemo(() => {
+    if (!allMonths.length) return ''
+    const min = allMonths[0]
+    const max = allMonths[allMonths.length - 1]
+    if (!startMonth || startMonth < min || startMonth > max) return min
+    return startMonth
+  }, [startMonth, allMonths])
+
+  const effectiveEnd = useMemo(() => {
+    if (!allMonths.length) return ''
+    const min = allMonths[0]
+    const max = allMonths[allMonths.length - 1]
+    if (!endMonth || endMonth > max || endMonth < min) return max
+    return endMonth
+  }, [endMonth, allMonths])
 
   // 期間フィルタリング → 店舗別集計
   const merchantSummary = useMemo<MerchantSummary[]>(() => {
