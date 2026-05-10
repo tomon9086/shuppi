@@ -11,31 +11,8 @@ import {
 } from 'recharts'
 import data from 'virtual:shuppi-data'
 import type { CardData, Transaction } from './types'
+import { addMonths, formatYen, getMonthRange } from './utils'
 import './App.css'
-
-// ---------- ユーティリティ ----------
-
-function formatYen(amount: number): string {
-  return `¥${amount.toLocaleString('ja-JP')}`
-}
-
-function getMonthRange(transactions: CardData['transactions']): {
-  min: string
-  max: string
-} {
-  const months = transactions.map((t) => t.date.slice(0, 7))
-  return {
-    min: months.reduce((a, b) => (a < b ? a : b), months[0] ?? ''),
-    max: months.reduce((a, b) => (a > b ? a : b), months[0] ?? ''),
-  }
-}
-
-// ISO月文字列 "YYYY-MM" の加算
-function addMonths(ym: string, n: number): string {
-  const [y, m] = ym.split('-').map(Number)
-  const d = new Date(y, m - 1 + n, 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
 
 const COLORS = [
   '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#3b82f6',

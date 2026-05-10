@@ -31,7 +31,7 @@ interface ProcessedData {
 /**
  * 全角英数字・記号を半角に変換
  */
-function normalizeFullWidth(str: string): string {
+export function normalizeFullWidth(str: string): string {
   return str
     .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (c) =>
       String.fromCharCode(c.charCodeAt(0) - 0xfee0),
@@ -60,7 +60,7 @@ function normalizeFullWidth(str: string): string {
  * - 記号除去
  * - スペース除去
  */
-function normalizeMerchantForCompare(name: string): string {
+export function normalizeMerchantForCompare(name: string): string {
   return normalizeFullWidth(name)
     .toUpperCase()
     .replace(/[^\p{L}\p{N}]/gu, '')
@@ -70,7 +70,7 @@ function normalizeMerchantForCompare(name: string): string {
  * 類似店舗名をクラスタリングして代表名を返すMapを生成
  * Fuseでファジー検索し、一定スコア以上のものを同一店舗とみなす
  */
-function clusterMerchants(names: string[]): Map<string, string> {
+export function clusterMerchants(names: string[]): Map<string, string> {
   const unique = [...new Set(names)]
   const canonical = new Map<string, string>() // 元名 → 代表名
 
@@ -127,7 +127,7 @@ function decodeSJIS(buffer: Buffer): string {
 /**
  * CSV の1行をフィールド配列に分割（ダブルクォート対応）
  */
-function parseCsvLine(line: string): string[] {
+export function parseCsvLine(line: string): string[] {
   const fields: string[] = []
   let cur = ''
   let inQuote = false
@@ -158,13 +158,13 @@ function parseCsvLine(line: string): string[] {
 // 合計行: ",,,,,,73771\u30001771"
 // 複数カードブロックが1ファイル内に存在する場合がある
 
-interface PlatinumBlock {
+export interface PlatinumBlock {
   cardId: string
   cardName: string
   lines: string[]
 }
 
-function parsePlatinumBlocks(content: string): PlatinumBlock[] {
+export function parsePlatinumBlocks(content: string): PlatinumBlock[] {
   const lines = content.split('\n').map((l) => l.trim()).filter(Boolean)
   const blocks: PlatinumBlock[] = []
   let current: PlatinumBlock | null = null
@@ -191,7 +191,7 @@ function parsePlatinumBlocks(content: string): PlatinumBlock[] {
   return blocks
 }
 
-function parsePlatinumTransactions(lines: string[]): Transaction[] {
+export function parsePlatinumTransactions(lines: string[]): Transaction[] {
   const txns: Transaction[] = []
   for (const line of lines) {
     const fields = line.split(',')
@@ -214,7 +214,7 @@ function parsePlatinumTransactions(lines: string[]): Transaction[] {
 // ヘッダー: ["ご利用者","カテゴリ","ご利用日","ご利用先など","ご利用金額(￥)",...] (6行目)
 // データ: ["****...", "≪ショッピング...≫", " 2026/02/21", "店舗名", "9,647", ...]
 
-function parseJcbTransactions(content: string): CardData[] {
+export function parseJcbTransactions(content: string): CardData[] {
   const lines = content.split('\n').map((l) => l.trim()).filter(Boolean)
 
   // ヘッダー行を探す
