@@ -70,10 +70,11 @@ function SpendingChart({
 
 // ---------- 全履歴統計表 ----------
 
-/** ひらがな→カタカナ変換して小文字に統一 */
+/** ひらがな→カタカナ変換、長音記号・ハイフン類を統一して小文字化 */
 function normalizeKana(s: string): string {
   return s
     .replace(/[\u3041-\u3096]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60))
+    .replace(/[-\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uff0d\u30fc]/g, '\u30fc')
     .toLowerCase()
 }
 
