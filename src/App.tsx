@@ -68,6 +68,82 @@ function SpendingChart({
   )
 }
 
+// ---------- 全履歴統計表 ----------
+
+interface MerchantStat {
+  merchant: string
+  total: number
+  count: number
+  max: number
+  avg: number
+}
+
+function AllHistoryTable({ transactions }: { transactions: Transaction[] }) {
+  const stats = useMemo<MerchantStat[]>(() => {
+    const map = new Map<string, { total: number; count: number; max: number }>()
+    for (const t of transactions) {
+      const prev = map.get(t.merchant) ?? { total: 0, count: 0, max: 0 }
+      map.set(t.merchant, {
+        total: prev.total + t.amount,
+        count: prev.count + 1,
+        max: Math.max(prev.max, t.amount),
+      })
+    }
+    return [...map.entries()]
+      .sort(([, a], [, b]) => b.total - a.total)
+      .map(([merchant, { total, count, max }]) => ({
+        merchant,
+        total,
+        count,
+        max,
+        avg: Math.round(total / count),
+      }))
+  }, [transactions])
+
+  if (stats.length === 0) return null
+
+  const grandTotal = stats.reduce((s, r) => s + r.total, 0)
+  const grandCount = stats.reduce((s, r) => s + r.count, 0)
+  const grandMax = stats.reduce((s, r) => Math.max(s, r.max), 0)
+  const grandAvg = Math.round(grandTotal / grandCount)
+
+  return (
+    <div className="history-table-container">
+      <table className="history-table">
+        <thead>
+          <tr>
+            <th>支払先</th>
+            <th className="num">合計</th>
+            <th className="num">件数</th>
+            <th className="num">平均</th>
+            <th className="num">最大</th>
+          </tr>
+        </thead>
+        <tbody>
+          {stats.map((row) => (
+            <tr key={row.merchant}>
+              <td>{row.merchant}</td>
+              <td className="num">{formatYen(row.total)}</td>
+              <td className="num">{row.count}</td>
+              <td className="num">{formatYen(row.avg)}</td>
+              <td className="num">{formatYen(row.max)}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>合計</td>
+            <td className="num">{formatYen(grandTotal)}</td>
+            <td className="num">{grandCount}</td>
+            <td className="num">{formatYen(grandAvg)}</td>
+            <td className="num">{formatYen(grandMax)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  )
+}
+
 // ---------- メインApp ----------
 
 export default function App() {
@@ -213,6 +289,16 @@ export default function App() {
           <SpendingChart data={merchantSummary} />
         )}
       </div>
+
+      {/* 全履歴統計表 */}
+      <section className="section-block">
+        <h2 className="section-title">全履歴 支払先別統計</h2>
+        {selectedCard ? (
+          <AllHistoryTable transactions={selectedCard.transactions} />
+        ) : (
+          <p className="empty">データがありません</p>
+        )}
+      </section>
     </div>
   )
 }
