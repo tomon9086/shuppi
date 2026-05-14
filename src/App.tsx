@@ -70,6 +70,13 @@ function SpendingChart({
 
 // ---------- 全履歴統計表 ----------
 
+/** ひらがな→カタカナ変換して小文字に統一 */
+function normalizeKana(s: string): string {
+  return s
+    .replace(/[\u3041-\u3096]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60))
+    .toLowerCase()
+}
+
 interface MerchantStat {
   merchant: string
   total: number
@@ -79,6 +86,8 @@ interface MerchantStat {
 }
 
 function AllHistoryTable({ transactions }: { transactions: Transaction[] }) {
+  const [query, setQuery] = useState('')
+
   const stats = useMemo<MerchantStat[]>(() => {
     const map = new Map<string, { total: number; count: number; max: number }>()
     for (const t of transactions) {
@@ -102,13 +111,31 @@ function AllHistoryTable({ transactions }: { transactions: Transaction[] }) {
 
   if (stats.length === 0) return null
 
-  const grandTotal = stats.reduce((s, r) => s + r.total, 0)
-  const grandCount = stats.reduce((s, r) => s + r.count, 0)
-  const grandMax = stats.reduce((s, r) => Math.max(s, r.max), 0)
-  const grandAvg = Math.round(grandTotal / grandCount)
+  const normalizedQuery = normalizeKana(query)
+  const filtered = query
+    ? stats.filter((r) => normalizeKana(r.merchant).includes(normalizedQuery))
+    : stats
+
+  const grandTotal = filtered.reduce((s, r) => s + r.total, 0)
+  const grandCount = filtered.reduce((s, r) => s + r.count, 0)
+  const grandMax = filtered.reduce((s, r) => Math.max(s, r.max), 0)
+  const grandAvg = filtered.length > 0 ? Math.round(grandTotal / grandCount) : 0
 
   return (
-    <div className="history-table-container">
+    <div>
+      <div className="history-search-row">
+        <input
+          type="search"
+          className="history-search"
+          placeholder="支払先を検索…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {query && (
+          <span className="history-search-count">{filtered.length} 件</span>
+        )}
+      </div>
+      <div className="history-table-container">
       <table className="history-table">
         <thead>
           <tr>
@@ -120,7 +147,7 @@ function AllHistoryTable({ transactions }: { transactions: Transaction[] }) {
           </tr>
         </thead>
         <tbody>
-          {stats.map((row) => (
+          {filtered.map((row) => (
             <tr key={row.merchant}>
               <td>{row.merchant}</td>
               <td className="num">{formatYen(row.total)}</td>
@@ -140,6 +167,7 @@ function AllHistoryTable({ transactions }: { transactions: Transaction[] }) {
           </tr>
         </tfoot>
       </table>
+      </div>
     </div>
   )
 }
