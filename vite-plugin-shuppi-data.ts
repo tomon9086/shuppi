@@ -63,6 +63,7 @@ export function normalizeFullWidth(str: string): string {
 export function normalizeMerchantForCompare(name: string): string {
   return normalizeFullWidth(name)
     .toUpperCase()
+    .replace(/\s+[A-Z0-9]{5,8}$/, '') // 末尾のトランザクションIDを除去 (例: "V5JS6W")
     .replace(/[^\p{L}\p{N}]/gu, '')
 }
 
@@ -209,6 +210,47 @@ export function parsePlatinumTransactions(lines: string[]): Transaction[] {
   return txns
 }
 
+// ---------- PayPay フォーマット ----------
+// CSVダブルクォート囲み、UTF-8
+// ヘッダー: "利用日/キャンセル日","利用店名・商品名","利用者","決済方法","支払区分","利用金額",...
+// データ: "2025/10/28","PAYPAL *GITHUB INC","本人*","PayPayカード","1回","147",...
+
+export function parsePayPayTransactions(content: string): Transaction[] {
+  const lines = content.split('\n').map((l) => l.trim()).filter(Boolean)
+
+  let headerIdx = -1
+  for (let i = 0; i < lines.length; i++) {
+    const fields = parseCsvLine(lines[i])
+    if (fields.some((f) => f.includes('利用日') || f.includes('利用店名'))) {
+      headerIdx = i
+      break
+    }
+  }
+  if (headerIdx === -1) return []
+
+  const txns: Transaction[] = []
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const fields = parseCsvLine(lines[i])
+    if (fields.length < 6) continue
+
+    const dateStr = fields[0].trim() // "2025/8/3"
+    const merchantRaw = fields[1].trim()
+    const amountStr = fields[5].trim().replace(/,/g, '')
+
+    // 日付フォーマット変換: 2025/8/3 → 2025-08-03
+    const dateMatch = dateStr.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/)
+    if (!dateMatch) continue
+
+    const date = `${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`
+    const amount = parseInt(amountStr.replace(/[^\d]/g, ''), 10)
+    if (isNaN(amount) || amount <= 0) continue
+
+    txns.push({ date, merchant: merchantRaw, amount })
+  }
+
+  return txns
+}
+
 // ---------- JCB フォーマット ----------
 // CSVダブルクォート囲み、各行はフィールドリスト
 // ヘッダー: ["ご利用者","カテゴリ","ご利用日","ご利用先など","ご利用金額(￥)",...] (6行目)
@@ -289,6 +331,28 @@ function processDataDir(dataDir: string): ProcessedData {
           })
         }
         const txns = parsePlatinumTransactions(block.lines)
+        allCards.get(key)!.transactions.push(...txns)
+      }
+    }
+  }
+
+  // PayPay
+  for (const dirName of ['paypay-private', 'paypay-work']) {
+    const ppDir = path.join(dataDir, dirName)
+    if (fs.existsSync(ppDir)) {
+      for (const file of fs.readdirSync(ppDir).filter((f) => f.endsWith('.csv'))) {
+        const cardIdMatch = file.match(/\((\d+)\)/)
+        const cardId = cardIdMatch ? cardIdMatch[1] : 'unknown'
+        const key = `paypay-${dirName}-${cardId}`
+        const content = fs.readFileSync(path.join(ppDir, file), 'utf-8')
+        const txns = parsePayPayTransactions(content)
+        if (!allCards.has(key)) {
+          allCards.set(key, {
+            cardId,
+            cardName: dirName,
+            transactions: [],
+          })
+        }
         allCards.get(key)!.transactions.push(...txns)
       }
     }
@@ -375,6 +439,8 @@ export function shuppiDataPlugin(): Plugin {
         }
         addWatchDir(path.join(dataDir, 'platinum-preffered'))
         addWatchDir(path.join(dataDir, 'jcb-w'))
+        addWatchDir(path.join(dataDir, 'paypay-private'))
+        addWatchDir(path.join(dataDir, 'paypay-work'))
       }
 
       const data = processDataDir(dataDir)
