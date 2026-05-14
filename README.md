@@ -1,73 +1,48 @@
-# React + TypeScript + Vite
+# shuppi
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+クレジットカードの利用明細CSVを読み込み、支出を可視化するローカル向けWebアプリです。
 
-Currently, two official plugins are available:
+## 機能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **支払先別グラフ**: 期間・カードを絞り込んで横棒グラフで支出を確認
+- **全履歴統計表**: 支払先ごとの合計・件数・平均・最大をテーブルで確認。インクリメンタル検索対応
+- **店舗名正規化**: 全角→半角変換・末尾トランザクションID除去・Fuse.jsによるファジーマッチングで類似店舗名を自動クラスタリング
+- **重複排除**: 同日・同店舗・同金額の重複明細を自動除去
 
-## React Compiler
+## 対応フォーマット
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| ディレクトリ | カード | エンコード |
+|---|---|---|
+| `data/platinum-preffered/` | 三井住友カードプラチナプリファード | Shift_JIS |
+| `data/paypay-private/` | PayPayカード（プライベート） | UTF-8 |
+| `data/paypay-work/` | PayPayカード（仕事用） | UTF-8 |
+| `data/jcb-w/` | JCBカードW | Shift_JIS |
 
-## Expanding the ESLint configuration
+各ディレクトリにカード会社のマイページからエクスポートしたCSVを配置してください。
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## セットアップ
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm install
+pnpm dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## コマンド
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| コマンド | 説明 |
+|---|---|
+| `pnpm dev` | 開発サーバー起動 |
+| `pnpm build` | プロダクションビルド |
+| `pnpm preview` | ビルド結果のプレビュー |
+| `pnpm test` | テスト実行 |
+| `pnpm test:watch` | テストをウォッチモードで実行 |
+| `pnpm test:coverage` | カバレッジ付きテスト実行 |
+| `pnpm lint` | Lintチェック |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 技術スタック
+
+- [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- [Vite](https://vite.dev/)
+- [Recharts](https://recharts.org/) — グラフ描画
+- [Fuse.js](https://www.fusejs.io/) — 店舗名ファジーマッチング
+- [Vitest](https://vitest.dev/) — テスト
