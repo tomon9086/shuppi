@@ -221,19 +221,23 @@ export default function App() {
     return endMonth
   }, [endMonth, allMonths])
 
-  // 期間フィルタリング → 店舗別集計
-  const merchantSummary = useMemo<MerchantSummary[]>(() => {
+  // 期間フィルタリング
+  const filteredTransactions = useMemo<Transaction[]>(() => {
     if (!selectedCard) return []
-    const filtered = selectedCard.transactions.filter((t: Transaction) => {
+    return selectedCard.transactions.filter((t: Transaction) => {
       const month = t.date.slice(0, 7)
       return month >= effectiveStart && month <= effectiveEnd
     })
+  }, [selectedCard, effectiveStart, effectiveEnd])
+
+  // 店舗別集計
+  const merchantSummary = useMemo<MerchantSummary[]>(() => {
     const map = new Map<string, number>()
-    for (const t of filtered as Transaction[]) {
+    for (const t of filteredTransactions) {
       map.set(t.merchant, (map.get(t.merchant) ?? 0) + t.amount)
     }
     return [...map.entries()].map(([merchant, total]) => ({ merchant, total }))
-  }, [selectedCard, effectiveStart, effectiveEnd])
+  }, [filteredTransactions])
 
   const totalAmount = merchantSummary.reduce((s, m) => s + m.total, 0)
 
@@ -321,9 +325,9 @@ export default function App() {
 
       {/* 全履歴統計表 */}
       <section className="section-block">
-        <h2 className="section-title">全履歴 支払先別統計</h2>
+        <h2 className="section-title">支払先別統計</h2>
         {selectedCard ? (
-          <AllHistoryTable transactions={selectedCard.transactions} />
+          <AllHistoryTable transactions={filteredTransactions} />
         ) : (
           <p className="empty">データがありません</p>
         )}
